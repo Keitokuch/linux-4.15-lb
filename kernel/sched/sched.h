@@ -684,6 +684,12 @@ struct rq {
 
     unsigned int test_aggressive;
 
+    struct perf_event *pe_0;
+    struct perf_event *pe_1;
+
+    u64 perf_count_0;
+    u64 perf_count_1;
+
 	/*
 	 * nr_running and cpu_load should be in the same cacheline because
 	 * remote CPUs use both these fields when doing load calculation.

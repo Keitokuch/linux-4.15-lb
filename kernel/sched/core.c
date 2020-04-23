@@ -29,6 +29,8 @@
 #include <linux/syscalls.h>
 #include <linux/sched/isolation.h>
 
+#include <linux/perf_event.h>
+
 #include <asm/switch_to.h>
 #include <asm/tlb.h>
 #ifdef CONFIG_PARAVIRT
@@ -5817,6 +5819,38 @@ LIST_HEAD(task_groups);
 static struct kmem_cache *task_group_cache __read_mostly;
 #endif
 
+// JC lb perf
+static inline void __init rq_perf_init(struct rq *rq) {
+    struct perf_event *event;
+    struct perf_event_attr attr = {
+        .type = PERF_TYPE_SOFTWARE,
+        .size = sizeof(struct perf_event_attr),
+        .disabled = 1,
+        .pinned = 1,
+        .enable_on_exec = 1,
+    };
+
+    attr.config = PERF_COUNT_SW_CONTEXT_SWITCHES;
+    event = perf_event_create_kernel_counter(&attr, rq->cpu, NULL, NULL, NULL);
+    if (IS_ERR(event)) {
+        printk("Crerate rq CS perf_event failed %ld", event);
+        return;
+    } else {
+        perf_event_enable(event);
+        rq->pe_0 = event;
+    }
+
+    attr.config = PERF_COUNT_SW_CPU_MIGRATIONS;
+    event = perf_event_create_kernel_counter(&attr, rq->cpu, NULL, NULL, NULL);
+    if (IS_ERR(event)) {
+        printk("Crerate rq MIGRATION perf_event failed");
+        return;
+    } else {
+        perf_event_enable(event);
+        rq->pe_1 = event;
+    }
+}
+
 DECLARE_PER_CPU(cpumask_var_t, load_balance_mask);
 DECLARE_PER_CPU(cpumask_var_t, select_idle_mask);
 
@@ -5945,6 +5979,8 @@ void __init sched_init(void)
 		rq->max_idle_balance_cost = sysctl_sched_migration_cost;
 
 		INIT_LIST_HEAD(&rq->cfs_tasks);
+
+        rq_perf_init(rq);
 
 		rq_attach_root(rq, &def_root_domain);
 #ifdef CONFIG_NO_HZ_COMMON

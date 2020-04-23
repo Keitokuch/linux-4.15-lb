@@ -35,6 +35,8 @@
 #include <linux/task_work.h>
 #include <linux/sched/isolation.h>
 
+#include <linux/perf_event.h>
+
 #include <trace/events/sched.h>
 
 #include "sched.h"
@@ -7070,7 +7072,8 @@ int can_migrate_task(struct task_struct *p, struct lb_env *env)
 
 	lockdep_assert_held(&env->src_rq->lock);
 
-        env->src_rq->test_aggressive = 0;
+    env->src_rq->test_aggressive = 0;
+
 	/*
 	 * We do not migrate tasks that are:
 	 * 1) throttled_lb_pair, or
@@ -7119,7 +7122,7 @@ int can_migrate_task(struct task_struct *p, struct lb_env *env)
 		return 0;
 	}
 
-	    env->src_rq->test_aggressive = 1;
+    env->src_rq->test_aggressive = 1;
 
 	/*
 	 * Aggressive migration if:
@@ -8514,6 +8517,18 @@ redo:
 
 	env.src_cpu = busiest->cpu;
 	env.src_rq = busiest;
+
+    // JC lb update
+    if (env.src_rq->pe_0) {
+        env.src_rq->perf_count_0 = perf_event_read_value(env.src_rq->pe_0, NULL, NULL);
+    } else {
+        env.src_rq->perf_count_0 = -1;
+    }
+    if (env.src_rq->pe_1) {
+        env.src_rq->perf_count_1 = perf_event_read_value(env.src_rq->pe_1, NULL, NULL);
+    } else {
+        env.src_rq->perf_count_1 = -1;
+    }
 
 	ld_moved = 0;
 	if (busiest->nr_running > 1) {
