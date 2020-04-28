@@ -8,5 +8,7 @@
 
 extern void sched_init(void);
 extern void sched_init_smp(void);
+// JC
+extern void jc_perf_init(void);
 
 #endif /* _LINUX_SCHED_INIT_H */

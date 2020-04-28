@@ -8518,18 +8518,6 @@ redo:
 	env.src_cpu = busiest->cpu;
 	env.src_rq = busiest;
 
-    // JC lb update
-    if (env.src_rq->pe_0) {
-        env.src_rq->perf_count_0 = perf_event_read_value(env.src_rq->pe_0, NULL, NULL);
-    } else {
-        env.src_rq->perf_count_0 = -1;
-    }
-    if (env.src_rq->pe_1) {
-        env.src_rq->perf_count_1 = perf_event_read_value(env.src_rq->pe_1, NULL, NULL);
-    } else {
-        env.src_rq->perf_count_1 = -1;
-    }
-
 	ld_moved = 0;
 	if (busiest->nr_running > 1) {
 		/*
@@ -9137,6 +9125,21 @@ static void rebalance_domains(struct rq *rq, enum cpu_idle_type idle)
 	int update_next_balance = 0;
 	int need_serialize, need_decay = 0;
 	u64 max_cost = 0;
+
+    // JC lb update
+    if (1) {
+        u64 enabled, running;
+        if (rq->pe_0) {
+            rq->perf_count_0 = perf_event_read_value(rq->pe_0, &enabled, &running);
+        } else {
+            rq->perf_count_0 = -1;
+        }
+        if (rq->pe_1) {
+            rq->perf_count_1 = perf_event_read_value(rq->pe_1, &enabled, &running);
+        } else {
+            rq->perf_count_1 = -1;
+        }
+    }
 
 	update_blocked_averages(cpu);
 

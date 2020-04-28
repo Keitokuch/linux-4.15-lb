@@ -3380,6 +3380,7 @@ static void __sched notrace __schedule(bool preempt)
 		rq_unlock_irq(rq, &rf);
 	}
 
+
 	balance_callback(rq);
 }
 
@@ -5760,6 +5761,55 @@ static void sched_init_smt(void)
 static inline void sched_init_smt(void) { }
 #endif
 
+// JC lb perf
+static inline void __init rq_perf_init(struct rq *rq) {
+    struct perf_event *event;
+    struct perf_event_attr attr = {
+        /* .type		= PERF_TYPE_SOFTWARE, */
+        .size = sizeof(struct perf_event_attr),
+        .enable_on_exec = 1,
+        .exclude_host = 0,
+    };
+
+    /* attr.config = PERF_COUNT_SW_CONTEXT_SWITCHES; */
+    attr.type = PERF_TYPE_HARDWARE;
+    attr.config = PERF_COUNT_HW_CPU_CYCLES;
+    event = perf_event_create_kernel_counter(&attr, rq->cpu, NULL, NULL, NULL);
+    if (IS_ERR(event)) {
+        printk("JC create rq perf_event 00 on cpu %d failed %lx", rq->cpu, (long)event);
+    } else {
+        printk("JC rq perf_event 00 create on cpu %d success %lx", rq->cpu, (long)event);
+        perf_event_enable(event);
+        rq->pe_0 = event;
+    }
+
+    attr.type = PERF_TYPE_HARDWARE;
+    attr.config = PERF_COUNT_HW_BRANCH_INSTRUCTIONS;
+    event = perf_event_create_kernel_counter(&attr, rq->cpu, NULL, NULL, NULL);
+    if (IS_ERR(event)) {
+        printk("JC create rq perf_event 01 on cpu %d failed %lx", rq->cpu, (long)event);
+    } else {
+        printk("JC rq perf_event 01 create on cpu %d success %lx", rq->cpu, (long)event);
+        perf_event_enable(event);
+        rq->pe_1 = event;
+    }
+
+}
+
+static void jc_rq_perf_init(void)
+{
+    int i;
+	for_each_possible_cpu(i) {
+		struct rq *rq;
+        unsigned long flags;
+
+		rq = cpu_rq(i);
+        /* raw_spin_lock_irqsave(&rq->lock, flags); */
+        rq_perf_init(rq);
+        /* raw_spin_unlock_irqrestore(&rq->lock, flags); */
+    }
+}
+
 void __init sched_init_smp(void)
 {
 	sched_init_numa();
@@ -5782,6 +5832,9 @@ void __init sched_init_smp(void)
 	init_sched_dl_class();
 
 	sched_init_smt();
+
+    // JC
+    jc_rq_perf_init();
 
 	sched_smp_initialized = true;
 }
@@ -5818,38 +5871,6 @@ LIST_HEAD(task_groups);
 /* Cacheline aligned slab cache for task_group */
 static struct kmem_cache *task_group_cache __read_mostly;
 #endif
-
-// JC lb perf
-static inline void __init rq_perf_init(struct rq *rq) {
-    struct perf_event *event;
-    struct perf_event_attr attr = {
-        .type = PERF_TYPE_SOFTWARE,
-        .size = sizeof(struct perf_event_attr),
-        .disabled = 1,
-        .pinned = 1,
-        .enable_on_exec = 1,
-    };
-
-    attr.config = PERF_COUNT_SW_CONTEXT_SWITCHES;
-    event = perf_event_create_kernel_counter(&attr, rq->cpu, NULL, NULL, NULL);
-    if (IS_ERR(event)) {
-        printk("Crerate rq CS perf_event failed %ld", event);
-        return;
-    } else {
-        perf_event_enable(event);
-        rq->pe_0 = event;
-    }
-
-    attr.config = PERF_COUNT_SW_CPU_MIGRATIONS;
-    event = perf_event_create_kernel_counter(&attr, rq->cpu, NULL, NULL, NULL);
-    if (IS_ERR(event)) {
-        printk("Crerate rq MIGRATION perf_event failed");
-        return;
-    } else {
-        perf_event_enable(event);
-        rq->pe_1 = event;
-    }
-}
 
 DECLARE_PER_CPU(cpumask_var_t, load_balance_mask);
 DECLARE_PER_CPU(cpumask_var_t, select_idle_mask);
@@ -5964,6 +5985,10 @@ void __init sched_init(void)
 		for (j = 0; j < CPU_LOAD_IDX_MAX; j++)
 			rq->cpu_load[j] = 0;
 
+        // JC
+        rq->pe_0 = NULL;
+        rq->pe_1 = NULL;
+
 #ifdef CONFIG_SMP
 		rq->sd = NULL;
 		rq->rd = NULL;
@@ -5979,8 +6004,6 @@ void __init sched_init(void)
 		rq->max_idle_balance_cost = sysctl_sched_migration_cost;
 
 		INIT_LIST_HEAD(&rq->cfs_tasks);
-
-        rq_perf_init(rq);
 
 		rq_attach_root(rq, &def_root_domain);
 #ifdef CONFIG_NO_HZ_COMMON
