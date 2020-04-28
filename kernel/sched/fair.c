@@ -6968,6 +6968,8 @@ struct lb_env {
 
 	enum fbq_type		fbq_type;
 	struct list_head	tasks;
+    
+    unsigned int test_aggressive; // JC
 };
 
 /*
@@ -7072,7 +7074,7 @@ int can_migrate_task(struct task_struct *p, struct lb_env *env)
 
 	lockdep_assert_held(&env->src_rq->lock);
 
-    env->src_rq->test_aggressive = 0;
+    env->test_aggressive = 0;
 
 	/*
 	 * We do not migrate tasks that are:
@@ -7122,7 +7124,7 @@ int can_migrate_task(struct task_struct *p, struct lb_env *env)
 		return 0;
 	}
 
-    env->src_rq->test_aggressive = 1;
+    env->test_aggressive = 1;
 
 	/*
 	 * Aggressive migration if:
@@ -7231,7 +7233,6 @@ static int detach_tasks(struct lb_env *env)
 			env->flags |= LBF_NEED_BREAK;
 			break;
 		}
-
 
 		if (!can_migrate_task(p, env))
 			goto next;

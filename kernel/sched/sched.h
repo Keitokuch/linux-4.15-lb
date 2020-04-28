@@ -682,8 +682,6 @@ struct rq {
 	/* runqueue lock: */
 	raw_spinlock_t lock;
 
-    unsigned int test_aggressive;
-
     struct perf_event *pe_0;
     struct perf_event *pe_1;
 

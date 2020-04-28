@@ -5776,9 +5776,9 @@ static inline void __init rq_perf_init(struct rq *rq) {
     attr.config = PERF_COUNT_HW_CPU_CYCLES;
     event = perf_event_create_kernel_counter(&attr, rq->cpu, NULL, NULL, NULL);
     if (IS_ERR(event)) {
-        printk("JC create rq perf_event 00 on cpu %d failed %lx", rq->cpu, (long)event);
+        printk("JC create rq perf_event 00 on cpu %d failed with %ld", rq->cpu, (long)event);
     } else {
-        printk("JC rq perf_event 00 create on cpu %d success %lx", rq->cpu, (long)event);
+        /* printk("JC rq perf_event 00 create on cpu %d success %lx", rq->cpu, (long)event); */
         perf_event_enable(event);
         rq->pe_0 = event;
     }
@@ -5787,9 +5787,9 @@ static inline void __init rq_perf_init(struct rq *rq) {
     attr.config = PERF_COUNT_HW_BRANCH_INSTRUCTIONS;
     event = perf_event_create_kernel_counter(&attr, rq->cpu, NULL, NULL, NULL);
     if (IS_ERR(event)) {
-        printk("JC create rq perf_event 01 on cpu %d failed %lx", rq->cpu, (long)event);
+        printk("JC create rq perf_event 01 on cpu %d failed with %ld", rq->cpu, (long)event);
     } else {
-        printk("JC rq perf_event 01 create on cpu %d success %lx", rq->cpu, (long)event);
+        /* printk("JC rq perf_event 01 create on cpu %d success %lx", rq->cpu, (long)event); */
         perf_event_enable(event);
         rq->pe_1 = event;
     }
