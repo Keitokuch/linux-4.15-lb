@@ -9127,21 +9127,6 @@ static void rebalance_domains(struct rq *rq, enum cpu_idle_type idle)
 	int need_serialize, need_decay = 0;
 	u64 max_cost = 0;
 
-    // JC lb update
-    if (1) {
-        u64 enabled, running;
-        if (rq->pe_0) {
-            rq->perf_count_0 = perf_event_read_value(rq->pe_0, &enabled, &running);
-        } else {
-            rq->perf_count_0 = -1;
-        }
-        if (rq->pe_1) {
-            rq->perf_count_1 = perf_event_read_value(rq->pe_1, &enabled, &running);
-        } else {
-            rq->perf_count_1 = -1;
-        }
-    }
-
 	update_blocked_averages(cpu);
 
 	rcu_read_lock();
@@ -9393,6 +9378,21 @@ static __latent_entropy void run_rebalance_domains(struct softirq_action *h)
 	struct rq *this_rq = this_rq();
 	enum cpu_idle_type idle = this_rq->idle_balance ?
 						CPU_IDLE : CPU_NOT_IDLE;
+
+    // JC lb update
+    if (1) {
+        u64 enabled, running;
+        if (this_rq->pe_0) {
+            this_rq->perf_count_0 = perf_event_read_value(this_rq->pe_0, &enabled, &running);
+        } else {
+            this_rq->perf_count_0 = -1;
+        }
+        if (this_rq->pe_1) {
+            this_rq->perf_count_1 = perf_event_read_value(this_rq->pe_1, &enabled, &running);
+        } else {
+            this_rq->perf_count_1 = -1;
+        }
+    }
 
 	/*
 	 * If this cpu has a pending nohz_balance_kick, then do the
