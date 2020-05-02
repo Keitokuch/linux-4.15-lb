@@ -340,6 +340,8 @@
 331	common	pkey_free		sys_pkey_free
 332	common	statx			sys_statx
 
+345 64      jc_sched        sys_jc_sched
+
 #
 # x32-specific system call numbers start at 512 to avoid cache impact
 # for native 64-bit operation.

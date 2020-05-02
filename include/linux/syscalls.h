@@ -941,4 +941,7 @@ asmlinkage long sys_pkey_free(int pkey);
 asmlinkage long sys_statx(int dfd, const char __user *path, unsigned flags,
 			  unsigned mask, struct statx __user *buffer);
 
+/* kernel/sched/jc_mlp.c */
+asmlinkage long sys_jc_sched(int start);
+
 #endif

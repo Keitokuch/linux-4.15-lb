@@ -7064,6 +7064,13 @@ static inline int migrate_degrades_locality(struct task_struct *p,
 }
 #endif
 
+// JC
+static inline int should_migrate_task(struct task_struct *p, struct lb_env *env)
+{
+    jc_mlp_main();
+    return 0;
+}
+
 /*
  * can_migrate_task - may task p from runqueue rq be migrated to this_cpu?
  */
@@ -7125,6 +7132,11 @@ int can_migrate_task(struct task_struct *p, struct lb_env *env)
 	}
 
     env->test_aggressive = 1;
+
+    // JC
+    if (is_jc_sched) {
+        should_migrate_task(p, env);      
+    }
 
 	/*
 	 * Aggressive migration if:
