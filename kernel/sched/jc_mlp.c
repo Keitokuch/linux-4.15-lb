@@ -67,6 +67,9 @@ struct mlp_vector {
     dtype buddy_hot;
 };
 */
+struct mlp_vector {
+    dtype values[NR_FEAT];
+};
 
 static inline void matmul(struct matrix *X, struct matrix *Y, struct matrix *Z) 
 {
@@ -107,7 +110,6 @@ static int forward_pass(struct matrix *input)
     struct matrix W2 = {10, 1, w2};
     struct matrix out2 = {1, 1, o2};
     struct matrix B2 = {1, 1, b2};
-    /* printk("pk test: %08x", ftox(m1d(&B2, 0))); */
 
     matmul(input, &W1, &out1);
 
@@ -121,14 +123,13 @@ static int forward_pass(struct matrix *input)
 
     output = m1d(&out2, 0);
 
-    /* printf("output: %f\n", output); */
-    printk("forward_pass output: %08x", ftox(output));
+    /* printk("forward_pass output: %08x", ftox(output)); */
     return output > 0.5 ? 1 : 0;
-    /* return output; */
 }
 
 int jc_mlp_main(struct jc_lb_data *data) {
     int output;
+    struct matrix input = {1, NR_FEAT, NULL};
     dtype delta_faults;
 
     kernel_fpu_begin();
@@ -138,7 +139,7 @@ int jc_mlp_main(struct jc_lb_data *data) {
     else
         delta_faults = (dtype)data->delta_faults;
 
-    dtype mval[NR_FEAT] = {
+    input.values = (dtype[]) {
         (dtype)data->src_non_pref,
         (dtype)data->delta_hot,
         (dtype)data->cpu_idle,
@@ -156,10 +157,8 @@ int jc_mlp_main(struct jc_lb_data *data) {
         (dtype)data->buddy_hot,
     };
 
-    struct matrix input = {1, NR_FEAT, mval};
 
     output = forward_pass(&input);
-    printk("pred: %d", output);
 
     kernel_fpu_end();
 
