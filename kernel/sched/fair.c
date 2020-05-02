@@ -7067,8 +7067,54 @@ static inline int migrate_degrades_locality(struct task_struct *p,
 // JC
 static inline int should_migrate_task(struct task_struct *p, struct lb_env *env)
 {
-    jc_mlp_main();
-    return 0;
+	int src_nid, dst_nid;
+    s64 delta;
+    struct rq *src_rq = env->src_rq;
+    struct rq *dst_rq = env->dst_rq;
+	unsigned long src_faults, dst_faults;
+    struct jc_lb_data data = {0};
+
+	src_nid = cpu_to_node(env->src_cpu);
+    dst_nid = cpu_to_node(env->dst_cpu);
+    src_faults = task_faults(p, src_nid);
+    dst_faults = task_faults(p, dst_nid);
+
+    delta = rq_clock_task(env->src_rq) - p->se.exec_start;
+
+    if (env->src_rq->nr_running > env->src_rq->nr_preferred_running)
+        data.src_non_pref = 1;
+
+    if (delta < (s64)sysctl_sched_migration_cost)
+        data.delta_hot = 1;
+
+    data.cpu_idle = env->idle == CPU_IDLE;
+    data.cpu_not_idle = env->idle == CPU_NOT_IDLE;
+    data.cpu_newly_idle = env->idle == CPU_NEWLY_IDLE;
+    data.same_node = src_nid == dst_nid;
+	if (src_nid == p->numa_preferred_nid)
+        data.prefer_src = 1;
+	if (dst_nid == p->numa_preferred_nid)
+        data.prefer_dst = 1;
+
+    data.src_load = src_rq->cfs.avg.load_avg;
+    data.dst_load = dst_rq->cfs.avg.load_avg;
+    data.src_len = src_rq->nr_running;
+    data.dst_len = dst_rq->nr_running;
+
+    data.delta_faults = dst_faults - src_faults;
+    if (env->sd->nr_balance_failed > env->sd->cache_nice_tries) {
+        data.extra_fails = 1;
+    }
+    
+	if (sched_feat(CACHE_HOT_BUDDY) && env->dst_rq->nr_running &&
+			(&p->se == cfs_rq_of(&p->se)->next ||
+			 &p->se == cfs_rq_of(&p->se)->last)) {
+        data.buddy_hot = 1;
+    }
+
+    data.total_faults = p->total_numa_faults;
+
+    return jc_mlp_main(&data);
 }
 
 /*
@@ -7078,6 +7124,7 @@ static
 int can_migrate_task(struct task_struct *p, struct lb_env *env)
 {
 	int tsk_cache_hot;
+    int ret = 0;         // JC
 
 	lockdep_assert_held(&env->src_rq->lock);
 
@@ -7133,11 +7180,6 @@ int can_migrate_task(struct task_struct *p, struct lb_env *env)
 
     env->test_aggressive = 1;
 
-    // JC
-    if (is_jc_sched) {
-        should_migrate_task(p, env);      
-    }
-
 	/*
 	 * Aggressive migration if:
 	 * 1) destination numa is preferred
@@ -7154,8 +7196,16 @@ int can_migrate_task(struct task_struct *p, struct lb_env *env)
 			schedstat_inc(env->sd->lb_hot_gained[env->idle]);
 			schedstat_inc(p->se.statistics.nr_forced_migrations);
 		}
-		return 1;
+		/* return 1; */
+        ret = 1;
 	}
+
+    // JC
+    if (is_jc_sched) {
+        int jc_ret;
+        jc_ret = should_migrate_task(p, env);      
+        printk("can_migrate %d to %d", ret, jc_ret);
+    }
 
 	schedstat_inc(p->se.statistics.nr_failed_migrations_hot);
 	return 0;

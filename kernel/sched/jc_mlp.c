@@ -48,6 +48,26 @@ struct matrix {
     dtype *values;
 };
 
+/*
+struct mlp_vector {
+    dtype src_non_pref;
+    dtype delta_hot;
+    dtype cpu_idle;
+    dtype cpu_not_idle;
+    dtype cpu_newly_idle;
+    dtype same_node;
+    dtype prefer_src;
+    dtype prefer_dst;
+    dtype src_len;
+    dtype src_load;
+    dtype dst_load;
+    dtype dst_len;
+    dtype delta_faults;
+    dtype extra_fails;
+    dtype buddy_hot;
+};
+*/
+
 static inline void matmul(struct matrix *X, struct matrix *Y, struct matrix *Z) 
 {
     int i, j, k;
@@ -107,21 +127,43 @@ static int forward_pass(struct matrix *input)
     /* return output; */
 }
 
-int jc_mlp_main() {
-    dtype mval[NR_FEAT] = {
-        1,0,0,0,1,0,0,0,0,0.008,0.009000000000000001,0,0.0,0,0
-    };
-    struct matrix input = {1, NR_FEAT, mval};
+int jc_mlp_main(struct jc_lb_data *data) {
     int output;
+    dtype delta_faults;
 
     kernel_fpu_begin();
+
+    if (data->total_faults)
+        delta_faults = (dtype)data->delta_faults / data->total_faults;
+    else
+        delta_faults = (dtype)data->delta_faults;
+
+    dtype mval[NR_FEAT] = {
+        (dtype)data->src_non_pref,
+        (dtype)data->delta_hot,
+        (dtype)data->cpu_idle,
+        (dtype)data->cpu_not_idle,
+        (dtype)data->cpu_newly_idle,
+        (dtype)data->same_node,
+        (dtype)data->prefer_src,
+        (dtype)data->prefer_dst,
+        (dtype)data->src_len - 2,
+        (dtype)data->src_load / 1000,
+        (dtype)data->dst_load / 1000,
+        (dtype)data->dst_len,
+        delta_faults,
+        (dtype)data->extra_fails,
+        (dtype)data->buddy_hot,
+    };
+
+    struct matrix input = {1, NR_FEAT, mval};
 
     output = forward_pass(&input);
     printk("pred: %d", output);
 
     kernel_fpu_end();
 
-    return 0;
+    return output;
 }
 
 SYSCALL_DEFINE1(jc_sched, int, start)
