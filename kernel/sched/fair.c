@@ -7208,7 +7208,7 @@ int can_migrate_task(struct task_struct *p, struct lb_env *env)
     }
 
 	schedstat_inc(p->se.statistics.nr_failed_migrations_hot);
-	return 0;
+	return ret;
 }
 
 /*
