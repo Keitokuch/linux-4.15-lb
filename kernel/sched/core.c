@@ -5762,6 +5762,7 @@ static inline void sched_init_smt(void) { }
 #endif
 
 // JC lb perf
+#ifdef JC_SCHED
 static inline void __init rq_perf_init(struct rq *rq) {
     struct perf_event *event;
     struct perf_event_attr attr = {
@@ -5793,11 +5794,12 @@ static inline void __init rq_perf_init(struct rq *rq) {
         perf_event_enable(event);
         rq->pe_1 = event;
     }
-
 }
+#endif
 
 static void jc_rq_perf_init(void)
 {
+#ifdef JC_SCHED
     int i;
 	for_each_possible_cpu(i) {
 		struct rq *rq;
@@ -5808,6 +5810,7 @@ static void jc_rq_perf_init(void)
         rq_perf_init(rq);
         /* raw_spin_unlock_irqrestore(&rq->lock, flags); */
     }
+#endif
 }
 
 void __init sched_init_smp(void)

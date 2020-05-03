@@ -48,29 +48,6 @@ struct matrix {
     dtype *values;
 };
 
-/*
-struct mlp_vector {
-    dtype src_non_pref;
-    dtype delta_hot;
-    dtype cpu_idle;
-    dtype cpu_not_idle;
-    dtype cpu_newly_idle;
-    dtype same_node;
-    dtype prefer_src;
-    dtype prefer_dst;
-    dtype src_len;
-    dtype src_load;
-    dtype dst_load;
-    dtype dst_len;
-    dtype delta_faults;
-    dtype extra_fails;
-    dtype buddy_hot;
-};
-*/
-struct mlp_vector {
-    dtype values[NR_FEAT];
-};
-
 static inline void matmul(struct matrix *X, struct matrix *Y, struct matrix *Z) 
 {
     int i, j, k;
@@ -156,7 +133,6 @@ int jc_mlp_main(struct jc_lb_data *data) {
         (dtype)data->extra_fails,
         (dtype)data->buddy_hot,
     };
-
 
     output = forward_pass(&input);
 

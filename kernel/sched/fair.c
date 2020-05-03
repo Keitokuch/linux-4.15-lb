@@ -39,6 +39,8 @@
 
 #include <trace/events/sched.h>
 
+#include <linux/ktime.h>
+
 #include "sched.h"
 
 /*
@@ -6968,8 +6970,9 @@ struct lb_env {
 
 	enum fbq_type		fbq_type;
 	struct list_head	tasks;
-    
+#ifdef JC_SCHED
     unsigned int test_aggressive; // JC
+#endif
 };
 
 /*
@@ -7065,6 +7068,7 @@ static inline int migrate_degrades_locality(struct task_struct *p,
 #endif
 
 // JC
+#ifdef JC_SCHED
 static inline int should_migrate_task(struct task_struct *p, struct lb_env *env)
 {
 	int src_nid, dst_nid;
@@ -7116,6 +7120,7 @@ static inline int should_migrate_task(struct task_struct *p, struct lb_env *env)
 
     return jc_mlp_main(&data);
 }
+#endif
 
 /*
  * can_migrate_task - may task p from runqueue rq be migrated to this_cpu?
@@ -7124,14 +7129,17 @@ static
 int can_migrate_task(struct task_struct *p, struct lb_env *env)
 {
 	int tsk_cache_hot;
+
+#ifdef JC_SCHED
     int ret = 0;         // JC
-
-	lockdep_assert_held(&env->src_rq->lock);
-
     env->test_aggressive = 0;
+#endif
 
-	/*
-	 * We do not migrate tasks that are:
+    lockdep_assert_held(&env->src_rq->lock);
+
+
+    /*
+     * We do not migrate tasks that are:
 	 * 1) throttled_lb_pair, or
 	 * 2) cannot be migrated to this CPU due to cpus_allowed, or
 	 * 3) running (obviously), or
@@ -7178,7 +7186,15 @@ int can_migrate_task(struct task_struct *p, struct lb_env *env)
 		return 0;
 	}
 
+#ifdef JC_SCHED
     env->test_aggressive = 1;
+
+    u64 t_ori = ktime_get_ns();
+#endif
+
+#ifdef CONFIG_JC_SCHED
+    printk("config jc sched");
+#endif
 
 	/*
 	 * Aggressive migration if:
@@ -7195,19 +7211,29 @@ int can_migrate_task(struct task_struct *p, struct lb_env *env)
 		if (tsk_cache_hot == 1) {
 			schedstat_inc(env->sd->lb_hot_gained[env->idle]);
 			schedstat_inc(p->se.statistics.nr_forced_migrations);
-		}
-		/* return 1; */
+        }
+#ifdef JC_SCHED
         ret = 1;
-	}
-
-    // JC
-    if (is_jc_sched) {
-        int jc_ret = should_migrate_task(p, env);      
-        printk("can_migrate %d : %d", ret, jc_ret);
+#else
+        return 1;
+#endif
     }
 
-	schedstat_inc(p->se.statistics.nr_failed_migrations_hot);
+#ifdef JC_SCHED
+    t_ori = ktime_get_ns() - t_ori;
+    // JC
+    if (is_jc_sched) {
+        u64 t_jc = ktime_get_ns();
+        int jc_ret = should_migrate_task(p, env);      
+        t_jc = ktime_get_ns() - t_jc;
+        printk("can_migrate %d %d", ret, jc_ret);
+        printk("cm_time %llu %llu", t_ori, t_jc);
+    }
 	return ret;
+#else
+	schedstat_inc(p->se.statistics.nr_failed_migrations_hot);
+    return 0;
+#endif
 }
 
 /*
@@ -9441,6 +9467,7 @@ static __latent_entropy void run_rebalance_domains(struct softirq_action *h)
 						CPU_IDLE : CPU_NOT_IDLE;
 
     // JC lb update
+#ifdef JC_SCHED
     if (1) {
         u64 enabled, running;
         if (this_rq->pe_0) {
@@ -9454,6 +9481,7 @@ static __latent_entropy void run_rebalance_domains(struct softirq_action *h)
             this_rq->perf_count_1 = -1;
         }
     }
+#endif
 
 	/*
 	 * If this cpu has a pending nohz_balance_kick, then do the
