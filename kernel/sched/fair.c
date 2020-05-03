@@ -6970,10 +6970,65 @@ struct lb_env {
 
 	enum fbq_type		fbq_type;
 	struct list_head	tasks;
-#ifdef JC_SCHED
+#ifdef CONFIG_JC_SCHED_TEST
     unsigned int test_aggressive; // JC
 #endif
 };
+
+/* JC ML CFS LB*/
+#ifdef CONFIG_JC_SCHED
+static inline int should_migrate_task(struct task_struct *p, struct lb_env *env)
+{
+	int src_nid, dst_nid;
+    s64 delta;
+    struct rq *src_rq = env->src_rq;
+    struct rq *dst_rq = env->dst_rq;
+	unsigned long src_faults, dst_faults;
+    struct jc_lb_data data = {0};
+
+	src_nid = cpu_to_node(env->src_cpu);
+    dst_nid = cpu_to_node(env->dst_cpu);
+    src_faults = task_faults(p, src_nid);
+    dst_faults = task_faults(p, dst_nid);
+
+    delta = rq_clock_task(env->src_rq) - p->se.exec_start;
+
+    if (env->src_rq->nr_running > env->src_rq->nr_preferred_running)
+        data.src_non_pref = 1;
+
+    if (delta < (s64)sysctl_sched_migration_cost)
+        data.delta_hot = 1;
+
+    data.cpu_idle = env->idle == CPU_IDLE;
+    data.cpu_not_idle = env->idle == CPU_NOT_IDLE;
+    data.cpu_newly_idle = env->idle == CPU_NEWLY_IDLE;
+    data.same_node = src_nid == dst_nid;
+	if (src_nid == p->numa_preferred_nid)
+        data.prefer_src = 1;
+	if (dst_nid == p->numa_preferred_nid)
+        data.prefer_dst = 1;
+
+    data.src_load = src_rq->cfs.avg.load_avg;
+    data.dst_load = dst_rq->cfs.avg.load_avg;
+    data.src_len = src_rq->nr_running;
+    data.dst_len = dst_rq->nr_running;
+
+    data.delta_faults = dst_faults - src_faults;
+    if (env->sd->nr_balance_failed > env->sd->cache_nice_tries) {
+        data.extra_fails = 1;
+    }
+    
+	if (sched_feat(CACHE_HOT_BUDDY) && env->dst_rq->nr_running &&
+			(&p->se == cfs_rq_of(&p->se)->next ||
+			 &p->se == cfs_rq_of(&p->se)->last)) {
+        data.buddy_hot = 1;
+    }
+
+    data.total_faults = p->total_numa_faults;
+
+    return jc_mlp_main(&data);
+}
+#else
 
 /*
  * Is this task likely cache-hot:
@@ -7066,61 +7121,7 @@ static inline int migrate_degrades_locality(struct task_struct *p,
 	return -1;
 }
 #endif
-
-// JC
-#ifdef JC_SCHED
-static inline int should_migrate_task(struct task_struct *p, struct lb_env *env)
-{
-	int src_nid, dst_nid;
-    s64 delta;
-    struct rq *src_rq = env->src_rq;
-    struct rq *dst_rq = env->dst_rq;
-	unsigned long src_faults, dst_faults;
-    struct jc_lb_data data = {0};
-
-	src_nid = cpu_to_node(env->src_cpu);
-    dst_nid = cpu_to_node(env->dst_cpu);
-    src_faults = task_faults(p, src_nid);
-    dst_faults = task_faults(p, dst_nid);
-
-    delta = rq_clock_task(env->src_rq) - p->se.exec_start;
-
-    if (env->src_rq->nr_running > env->src_rq->nr_preferred_running)
-        data.src_non_pref = 1;
-
-    if (delta < (s64)sysctl_sched_migration_cost)
-        data.delta_hot = 1;
-
-    data.cpu_idle = env->idle == CPU_IDLE;
-    data.cpu_not_idle = env->idle == CPU_NOT_IDLE;
-    data.cpu_newly_idle = env->idle == CPU_NEWLY_IDLE;
-    data.same_node = src_nid == dst_nid;
-	if (src_nid == p->numa_preferred_nid)
-        data.prefer_src = 1;
-	if (dst_nid == p->numa_preferred_nid)
-        data.prefer_dst = 1;
-
-    data.src_load = src_rq->cfs.avg.load_avg;
-    data.dst_load = dst_rq->cfs.avg.load_avg;
-    data.src_len = src_rq->nr_running;
-    data.dst_len = dst_rq->nr_running;
-
-    data.delta_faults = dst_faults - src_faults;
-    if (env->sd->nr_balance_failed > env->sd->cache_nice_tries) {
-        data.extra_fails = 1;
-    }
-    
-	if (sched_feat(CACHE_HOT_BUDDY) && env->dst_rq->nr_running &&
-			(&p->se == cfs_rq_of(&p->se)->next ||
-			 &p->se == cfs_rq_of(&p->se)->last)) {
-        data.buddy_hot = 1;
-    }
-
-    data.total_faults = p->total_numa_faults;
-
-    return jc_mlp_main(&data);
-}
-#endif
+#endif  // JC_SCHED
 
 /*
  * can_migrate_task - may task p from runqueue rq be migrated to this_cpu?
@@ -7128,11 +7129,14 @@ static inline int should_migrate_task(struct task_struct *p, struct lb_env *env)
 static
 int can_migrate_task(struct task_struct *p, struct lb_env *env)
 {
-	int tsk_cache_hot;
-
-#ifdef JC_SCHED
+#ifdef CONFIG_JC_SCHED
+#ifdef CONFIG_JC_SCHED_TEST
     int ret = 0;         // JC
+    u64 t_ori;
     env->test_aggressive = 0;
+#endif
+#else
+	int tsk_cache_hot;
 #endif
 
     lockdep_assert_held(&env->src_rq->lock);
@@ -7186,14 +7190,13 @@ int can_migrate_task(struct task_struct *p, struct lb_env *env)
 		return 0;
 	}
 
-#ifdef JC_SCHED
-    env->test_aggressive = 1;
-
-    u64 t_ori = ktime_get_ns();
-#endif
-
 #ifdef CONFIG_JC_SCHED
-    printk("config jc sched");
+    return should_migrate_task(p, env);      
+#else
+
+#ifdef CONFIG_JC_SCHED_TEST
+    env->test_aggressive = 1;
+    t_ori = ktime_get_ns();
 #endif
 
 	/*
@@ -7212,14 +7215,14 @@ int can_migrate_task(struct task_struct *p, struct lb_env *env)
 			schedstat_inc(env->sd->lb_hot_gained[env->idle]);
 			schedstat_inc(p->se.statistics.nr_forced_migrations);
         }
-#ifdef JC_SCHED
+#ifdef CONFIG_JC_SCHED_TEST
         ret = 1;
 #else
         return 1;
 #endif
     }
 
-#ifdef JC_SCHED
+#ifdef CONFIG_JC_SCHED_TEST
     t_ori = ktime_get_ns() - t_ori;
     // JC
     if (is_jc_sched) {
@@ -7233,7 +7236,9 @@ int can_migrate_task(struct task_struct *p, struct lb_env *env)
 #else
 	schedstat_inc(p->se.statistics.nr_failed_migrations_hot);
     return 0;
-#endif
+#endif  // JC_SCHED_TEST
+
+#endif  // JC_SCHED
 }
 
 /*
@@ -9456,6 +9461,26 @@ unlock:
 static void nohz_idle_balance(struct rq *this_rq, enum cpu_idle_type idle) { }
 #endif
 
+#ifdef CONFIG_JC_SCHED_PERF
+/* JC lb rq perf counts update */
+static void jc_rq_perf_update(struct rq *this_rq)
+{
+    u64 enabled, running;
+    if (this_rq->pe_0) {
+        this_rq->perf_count_0 = perf_event_read_value(this_rq->pe_0, &enabled, &running);
+    } else {
+        this_rq->perf_count_0 = -1;
+    }
+    if (this_rq->pe_1) {
+        this_rq->perf_count_1 = perf_event_read_value(this_rq->pe_1, &enabled, &running);
+    } else {
+        this_rq->perf_count_1 = -1;
+    }
+}
+#else
+static void jc_rq_perf_update(struct rq *this_rq) { }
+#endif
+
 /*
  * run_rebalance_domains is triggered when needed from the scheduler tick.
  * Also triggered for nohz idle balancing (with nohz_balancing_kick set).
@@ -9467,21 +9492,7 @@ static __latent_entropy void run_rebalance_domains(struct softirq_action *h)
 						CPU_IDLE : CPU_NOT_IDLE;
 
     // JC lb update
-#ifdef JC_SCHED
-    if (1) {
-        u64 enabled, running;
-        if (this_rq->pe_0) {
-            this_rq->perf_count_0 = perf_event_read_value(this_rq->pe_0, &enabled, &running);
-        } else {
-            this_rq->perf_count_0 = -1;
-        }
-        if (this_rq->pe_1) {
-            this_rq->perf_count_1 = perf_event_read_value(this_rq->pe_1, &enabled, &running);
-        } else {
-            this_rq->perf_count_1 = -1;
-        }
-    }
-#endif
+    jc_rq_perf_update(this_rq);
 
 	/*
 	 * If this cpu has a pending nohz_balance_kick, then do the

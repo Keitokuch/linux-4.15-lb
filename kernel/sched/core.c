@@ -5762,7 +5762,7 @@ static inline void sched_init_smt(void) { }
 #endif
 
 // JC lb perf
-#ifdef JC_SCHED
+#ifdef CONFIG_JC_SCHED_PERF
 static inline void __init rq_perf_init(struct rq *rq) {
     struct perf_event *event;
     struct perf_event_attr attr = {
@@ -5794,24 +5794,23 @@ static inline void __init rq_perf_init(struct rq *rq) {
         perf_event_enable(event);
         rq->pe_1 = event;
     }
+    printk(KERN_INFO "Created lb perf events for cpu%d", rq->cpu);
 }
-#endif
 
 static void jc_rq_perf_init(void)
 {
-#ifdef JC_SCHED
     int i;
 	for_each_possible_cpu(i) {
 		struct rq *rq;
-        unsigned long flags;
+        /* unsigned long flags; */
 
 		rq = cpu_rq(i);
         /* raw_spin_lock_irqsave(&rq->lock, flags); */
         rq_perf_init(rq);
         /* raw_spin_unlock_irqrestore(&rq->lock, flags); */
     }
-#endif
 }
+#endif // JC_SCHED_PERF
 
 void __init sched_init_smp(void)
 {
@@ -5837,7 +5836,9 @@ void __init sched_init_smp(void)
 	sched_init_smt();
 
     // JC
+#ifdef CONFIG_JC_SCHED_PERF
     jc_rq_perf_init();
+#endif
 
 	sched_smp_initialized = true;
 }
@@ -5989,8 +5990,10 @@ void __init sched_init(void)
 			rq->cpu_load[j] = 0;
 
         // JC
+#ifdef CONFIG_JC_SCHED_PERF
         rq->pe_0 = NULL;
         rq->pe_1 = NULL;
+#endif
 
 #ifdef CONFIG_SMP
 		rq->sd = NULL;

@@ -39,9 +39,7 @@
 #include "cpupri.h"
 #include "cpudeadline.h"
 
-#define JC_SCHED
-
-#ifdef JC_SCHED
+#ifdef CONFIG_JC_SCHED
 #include "jc_mlp.h"         // JC
 #endif
 
@@ -688,11 +686,13 @@ struct rq {
 	/* runqueue lock: */
 	raw_spinlock_t lock;
 
+#ifdef CONFIG_JC_SCHED_PERF
     struct perf_event *pe_0;
     struct perf_event *pe_1;
 
     u64 perf_count_0;
     u64 perf_count_1;
+#endif
 
 	/*
 	 * nr_running and cpu_load should be in the same cacheline because
