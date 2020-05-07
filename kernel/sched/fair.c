@@ -7028,8 +7028,10 @@ static inline int should_migrate_task(struct task_struct *p, struct lb_env *env)
 
     return jc_mlp_main(&data);
 }
-#else
+#endif
 
+
+#ifndef CONFIG_JC_SCHED_REPLACE
 /*
  * Is this task likely cache-hot:
  */
@@ -7121,7 +7123,7 @@ static inline int migrate_degrades_locality(struct task_struct *p,
 	return -1;
 }
 #endif
-#endif  // JC_SCHED
+#endif  // JC_SCHED_REPLACE
 
 /*
  * can_migrate_task - may task p from runqueue rq be migrated to this_cpu?
@@ -7129,14 +7131,12 @@ static inline int migrate_degrades_locality(struct task_struct *p,
 static
 int can_migrate_task(struct task_struct *p, struct lb_env *env)
 {
-#ifdef CONFIG_JC_SCHED
+	int tsk_cache_hot;
+
 #ifdef CONFIG_JC_SCHED_TEST
     int ret = 0;         // JC
     u64 t_ori;
     env->test_aggressive = 0;
-#endif
-#else
-	int tsk_cache_hot;
 #endif
 
     lockdep_assert_held(&env->src_rq->lock);
@@ -7190,7 +7190,8 @@ int can_migrate_task(struct task_struct *p, struct lb_env *env)
 		return 0;
 	}
 
-#ifdef CONFIG_JC_SCHED
+#ifdef CONFIG_JC_SCHED_REPLACE
+    /* printk("JC_SCHED_REPLACE"); */
     return should_migrate_task(p, env);      
 #else
 
@@ -7198,7 +7199,6 @@ int can_migrate_task(struct task_struct *p, struct lb_env *env)
     env->test_aggressive = 1;
     t_ori = ktime_get_ns();
 #endif
-
 	/*
 	 * Aggressive migration if:
 	 * 1) destination numa is preferred
@@ -7238,7 +7238,7 @@ int can_migrate_task(struct task_struct *p, struct lb_env *env)
     return 0;
 #endif  // JC_SCHED_TEST
 
-#endif  // JC_SCHED
+#endif  // JC_SCHED_REPLACE
 }
 
 /*

@@ -5794,7 +5794,7 @@ static inline void __init rq_perf_init(struct rq *rq) {
         perf_event_enable(event);
         rq->pe_1 = event;
     }
-    printk(KERN_INFO "Created lb perf events for cpu%d", rq->cpu);
+    printk("Created lb perf events for cpu%d", rq->cpu);
 }
 
 static void jc_rq_perf_init(void)
