@@ -141,15 +141,3 @@ int jc_mlp_main(struct jc_lb_data *data) {
     return output;
 }
 
-SYSCALL_DEFINE1(jc_sched, int, start)
-{
-    if (start) {
-        is_jc_sched = 1;
-        printk("JC Sched Started.");
-    } else {
-        is_jc_sched = 0;
-        printk("JC Sched Stopped.");
-    }
-
-    return 0;
-}

@@ -6970,9 +6970,8 @@ struct lb_env {
 
 	enum fbq_type		fbq_type;
 	struct list_head	tasks;
-#ifdef CONFIG_JC_SCHED_TEST
+
     unsigned int test_aggressive; // JC
-#endif
 };
 
 /* JC ML CFS LB*/
@@ -7136,8 +7135,9 @@ int can_migrate_task(struct task_struct *p, struct lb_env *env)
 #ifdef CONFIG_JC_SCHED_TEST
     int ret = 0;         // JC
     u64 t_ori;
-    env->test_aggressive = 0;
 #endif
+
+    env->test_aggressive = 0;
 
     lockdep_assert_held(&env->src_rq->lock);
 
@@ -7190,15 +7190,22 @@ int can_migrate_task(struct task_struct *p, struct lb_env *env)
 		return 0;
 	}
 
+    env->test_aggressive = 1;
+
 #ifdef CONFIG_JC_SCHED_REPLACE
     /* printk("JC_SCHED_REPLACE"); */
     return should_migrate_task(p, env);      
 #else
 
+#ifdef CONFIG_JC_SCHED_TOGGLE
+    if (is_jc_sched)
+        return should_migrate_task(p, env);
+#endif
+
 #ifdef CONFIG_JC_SCHED_TEST
-    env->test_aggressive = 1;
     t_ori = ktime_get_ns();
 #endif
+
 	/*
 	 * Aggressive migration if:
 	 * 1) destination numa is preferred
@@ -7240,6 +7247,7 @@ int can_migrate_task(struct task_struct *p, struct lb_env *env)
 
 #endif  // JC_SCHED_REPLACE
 }
+
 
 /*
  * detach_task() -- detach the task for the migration specified in env

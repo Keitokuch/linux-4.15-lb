@@ -14,11 +14,14 @@ choice
     prompt "Mode"
     depends on JC_SCHED
 
-config JC_SCHED_TEST
-    bool "Test"
+config JC_SCHED_TOGGLE
+    bool "Toggle"
 
 config JC_SCHED_REPLACE
     bool "Replace"
+
+config JC_SCHED_TEST
+    bool "Test"
 
 endchoice 
 

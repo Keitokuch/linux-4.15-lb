@@ -5047,6 +5047,24 @@ void io_schedule(void)
 }
 EXPORT_SYMBOL(io_schedule);
 
+// JC
+SYSCALL_DEFINE1(jc_sched, int, start)
+{
+#ifdef CONFIG_JC_SCHED
+    if (start) {
+        is_jc_sched = 1;
+        printk("JC Sched Started.");
+    } else {
+        is_jc_sched = 0;
+        printk("JC Sched Stopped.");
+    }
+#else
+    printk("JC Sched not enabled");
+#endif
+
+    return 0;
+}
+
 /**
  * sys_sched_get_priority_max - return maximum RT priority.
  * @policy: scheduling class.
