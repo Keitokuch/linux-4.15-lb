@@ -5,34 +5,34 @@
 #include "jc_mlp.h"
 
 
-#define dtype float
 #define NR_FEAT     15
+#define ftod(F)        ftodtype(F)
 
 dtype w1[] = {
-    0.565644,  0.384824, -0.042528, -0.264426,  0.472312, -0.282259, -0.014167, -0.528233,  0.622656, -0.373769,
-    0.287381,  1.005889,  0.181242, -1.291967,  1.100194, -0.772200, -0.235354, -0.829178,  0.248697,  1.168082,
-    -0.281433, -0.546903,  0.032876,  0.559641, -0.228221,  0.103177,  0.620234,  0.318789, -0.633047, -0.006017,
-    0.047218,  0.084886, -0.134755,  0.645489, -0.277912,  0.517039,  0.651821, -0.285480, -0.003520, -0.437448,
-    -0.161385, -0.442559, -0.035489,  0.570436,  0.079949,  0.741253,  0.291243,  0.586947, -0.180183, -0.177284,
-    -0.396542,  0.055728,  0.112597,  0.317440, -0.177967,  0.211646, -0.254014, -0.166693, -0.414425,  0.561991,
-    0.407785,  0.664266, -0.077182, -0.454090,  0.397967,  0.089694, -0.946674, -0.246415,  0.240792, -0.013765,
-    -0.322740, -0.332058,  0.104680,  0.449407, -0.545375,  0.934457,  0.600992,  0.594059, -0.398014,  0.048134,
-    0.199440,  0.236234, -0.549774,  0.362871,  0.128888, -0.064394,  0.194858,  0.173756, -0.087557,  0.147654,
-    0.133639,  0.000841, -0.001098,  0.626147, -0.152287,  0.110689,  0.108449, -0.463610,  0.171219,  0.310098,
-    -0.440701,  0.361575, -0.302418,  0.573317,  0.322387,  0.602443, -0.314726,  0.031837,  0.124628, -0.135573,
-    0.159068, -0.059842, -0.526570, -0.010963,  0.311802,  0.360409, -0.103766,  0.363927, -0.428252,  0.085832,
-    -0.080852,  0.010944, -0.331394,  0.068851,  0.145650,  0.842668,  0.369900, -0.027606, -0.326165, -0.271815,
-    -0.219882, -0.526053, -0.540803,  0.893084, -1.002251,  0.007923,  1.298324,  0.295529, -0.469116, -0.790421,
-    0.936136,  0.879596, -0.094900, -0.326074,  0.891442, -1.032957, -0.173408, -0.906972,  0.650875,  0.917579,
+    ftod(0.565644),  ftod(0.384824), ftod(-0.042528), ftod(-0.264426),  ftod(0.472312), ftod(-0.282259), ftod(-0.014167), ftod(-0.528233),  ftod(0.622656), ftod(-0.373769),
+    ftod(0.287381),  ftod(1.005889),  ftod(0.181242), ftod(-1.291967),  ftod(1.100194), ftod(-0.772200), ftod(-0.235354), ftod(-0.829178),  ftod(0.248697),  ftod(1.168082),
+    ftod(-0.281433), ftod(-0.546903),  ftod(0.032876),  ftod(0.559641), ftod(-0.228221),  ftod(0.103177),  ftod(0.620234),  ftod(0.318789), ftod(-0.633047), ftod(-0.006017),
+    ftod(0.047218),  ftod(0.084886), ftod(-0.134755),  ftod(0.645489), ftod(-0.277912),  ftod(0.517039),  ftod(0.651821), ftod(-0.285480), ftod(-0.003520), ftod(-0.437448),
+    ftod(-0.161385), ftod(-0.442559), ftod(-0.035489),  ftod(0.570436),  ftod(0.079949),  ftod(0.741253),  ftod(0.291243),  ftod(0.586947), ftod(-0.180183), ftod(-0.177284),
+    ftod(-0.396542),  ftod(0.055728),  ftod(0.112597),  ftod(0.317440), ftod(-0.177967),  ftod(0.211646), ftod(-0.254014), ftod(-0.166693), ftod(-0.414425),  ftod(0.561991),
+    ftod(0.407785),  ftod(0.664266), ftod(-0.077182), ftod(-0.454090),  ftod(0.397967),  ftod(0.089694), ftod(-0.946674), ftod(-0.246415),  ftod(0.240792), ftod(-0.013765),
+    ftod(-0.322740), ftod(-0.332058),  ftod(0.104680),  ftod(0.449407), ftod(-0.545375),  ftod(0.934457),  ftod(0.600992),  ftod(0.594059), ftod(-0.398014),  ftod(0.048134),
+    ftod(0.199440),  ftod(0.236234), ftod(-0.549774),  ftod(0.362871),  ftod(0.128888), ftod(-0.064394),  ftod(0.194858),  ftod(0.173756), ftod(-0.087557),  ftod(0.147654),
+    ftod(0.133639),  ftod(0.000841), ftod(-0.001098),  ftod(0.626147), ftod(-0.152287),  ftod(0.110689),  ftod(0.108449), ftod(-0.463610),  ftod(0.171219),  ftod(0.310098),
+    ftod(-0.440701),  ftod(0.361575), ftod(-0.302418),  ftod(0.573317),  ftod(0.322387),  ftod(0.602443), ftod(-0.314726),  ftod(0.031837),  ftod(0.124628), ftod(-0.135573),
+    ftod(0.159068), ftod(-0.059842), ftod(-0.526570), ftod(-0.010963),  ftod(0.311802),  ftod(0.360409), ftod(-0.103766),  ftod(0.363927), ftod(-0.428252),  ftod(0.085832),
+    ftod(-0.080852),  ftod(0.010944), ftod(-0.331394),  ftod(0.068851),  ftod(0.145650),  ftod(0.842668),  ftod(0.369900), ftod(-0.027606), ftod(-0.326165), ftod(-0.271815),
+    ftod(-0.219882), ftod(-0.526053), ftod(-0.540803),  ftod(0.893084), ftod(-1.002251),  ftod(0.007923),  ftod(1.298324),  ftod(0.295529), ftod(-0.469116), ftod(-0.790421),
+    ftod(0.936136),  ftod(0.879596), ftod(-0.094900), ftod(-0.326074),  ftod(0.891442), ftod(-1.032957), ftod(-0.173408), ftod(-0.906972),  ftod(0.650875),  ftod(0.917579),
 };
 
 dtype b1[] = {
-    -0.257286, -0.220656, -0.312300, 0.485314, -0.377361, 0.445350, 0.321995, 0.456795, -0.164362, -0.260494,
+    ftod(-0.257286), ftod(-0.220656), ftod(-0.312300), ftod(0.485314), ftod(-0.377361), ftod(0.445350), ftod(0.321995), ftod(0.456795), ftod(-0.164362), ftod(-0.260494),
 };
 
-dtype w2[] = {-0.409050, -0.578690, -0.446989, 0.361227, -0.401546, 0.258594, 0.760240, 0.524665, -0.385637, -0.721390,};
+dtype w2[] = { ftod(-0.409050), ftod(-0.578690), ftod(-0.446989), ftod(0.361227), ftod(-0.401546), ftod(0.258594), ftod(0.760240), ftod(0.524665), ftod(-0.385637), ftod(-0.721390),};
 
-dtype b2[] = {0.405319};
+dtype b2[] = { ftod(0.405319) };
 
 #define m2d(x, i, j)    ((x)->values[i * (x)->ncol + j])
 #define m1d(x, i)       ((x)->values[i])
@@ -55,7 +55,7 @@ static inline void matmul(struct matrix *X, struct matrix *Y, struct matrix *Z)
         for(j = 0; j < Y->ncol; j++)
             for(k = 0; k < X->ncol; k++)
             {
-                m2d(Z, i, j) = m2d(Z, i, j) + (m2d(X, i, k) * m2d(Y, k, j));
+                m2d(Z, i, j) = m2d(Z, i, j) + dtype_mul(m2d(X, i, k), m2d(Y, k, j));
             }
 }
 
@@ -77,7 +77,7 @@ static inline void ReLU(struct matrix *X)
 
 static int forward_pass(struct matrix *input)
 {
-    float output;
+    dtype output;
     dtype o1[10] = {0};
     dtype o2[10] = {0};
 
@@ -100,10 +100,44 @@ static int forward_pass(struct matrix *input)
 
     output = m1d(&out2, 0);
 
-    /* printk("forward_pass output: %08x", ftox(output)); */
-    return output > 0.5 ? 1 : 0;
+    /* printk("forward_pass output: %08x", ftox(tofloat(output))); */
+    return output > ftod(0.5) ? 1 : 0;
 }
 
+#ifdef CONFIG_JC_SCHED_FXDPT
+int jc_mlp_main(struct jc_lb_data *data) {
+    int output;
+    struct matrix input = {1, NR_FEAT, NULL};
+    dtype delta_faults;
+
+    if (data->total_faults)
+        delta_faults = dtype_div(itodtype(data->delta_faults), itodtype(data->total_faults));
+    else
+        delta_faults = itodtype(data->delta_faults);
+
+    input.values = (dtype[]) {
+        itodtype(data->src_non_pref),
+        itodtype(data->delta_hot),
+        itodtype(data->cpu_idle),
+        itodtype(data->cpu_not_idle),
+        itodtype(data->cpu_newly_idle),
+        itodtype(data->same_node),
+        itodtype(data->prefer_src),
+        itodtype(data->prefer_dst),
+        itodtype(data->src_len) - itodtype(2),
+        dtype_div(itodtype(data->src_load), itodtype(1000)),
+        dtype_div(itodtype(data->dst_load), itodtype(1000)),
+        itodtype(data->dst_len),
+        delta_faults,
+        itodtype(data->extra_fails),
+        itodtype(data->buddy_hot),
+    };
+
+    output = forward_pass(&input);
+
+    return output;
+}
+#else
 int jc_mlp_main(struct jc_lb_data *data) {
     int output;
     struct matrix input = {1, NR_FEAT, NULL};
@@ -140,4 +174,5 @@ int jc_mlp_main(struct jc_lb_data *data) {
 
     return output;
 }
+#endif
 

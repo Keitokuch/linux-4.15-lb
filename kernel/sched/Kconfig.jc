@@ -25,6 +25,11 @@ config JC_SCHED_TEST
 
 endchoice 
 
+config JC_SCHED_FXDPT
+    bool "Use fixed point calculation"
+    depends on JC_SCHED
+    default n
+
 config JC_SCHED_PERF
     bool "ML Load balancer with perf counters"
     depends on JC_SCHED && PERF_EVENTS
